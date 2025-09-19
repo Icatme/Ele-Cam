@@ -36,6 +36,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     init {
         viewModelScope.launch {
             repository.cameraSettingsFlow.collect { settings ->
+
                 _state.update { current ->
                     current.copy(
                         settings = settings,
@@ -66,6 +67,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
             _events.emit(CameraUiEvent.RequestSettings())
         }
     }
+
 
     fun takePhoto() = sendCommand(
         command = "1001",
@@ -118,6 +120,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
             val result = commandService.executeCommand(settings, command, parameter)
             _state.update { it.copy(isExecutingCommand = false) }
 
+
             if (result.success && action is CameraCommandAction.SetRecordMode) {
                 _state.update { it.copy(isRecordMode = action.isRecordMode) }
             }
@@ -139,6 +142,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun notifyMissingSettings() {
         viewModelScope.launch {
+
             _events.emit(
                 CameraUiEvent.RequestSettings(app.getString(R.string.error_settings_missing))
             )
@@ -162,6 +166,7 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
 data class CameraUiState(
     val settings: CameraSettings? = null,
+
     val isExecutingCommand: Boolean = false,
     val isRecordMode: Boolean? = null
 )
@@ -169,6 +174,7 @@ data class CameraUiState(
 sealed class CameraUiEvent {
     data class ShowMessage(val message: String) : CameraUiEvent()
     data class RequestSettings(val reasonMessage: String? = null) : CameraUiEvent()
+
     data class CommandCompleted(
         val action: CameraCommandAction,
         val result: CameraCommandResult

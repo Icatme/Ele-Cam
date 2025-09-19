@@ -73,6 +73,7 @@ class MainActivity : AppCompatActivity() {
             }
             setOnClickListener { reload() }
         }
+
     }
 
     private fun setupControls() {
@@ -87,6 +88,7 @@ class MainActivity : AppCompatActivity() {
                 viewModel.requestSettingsDialog()
             }
         }
+
         binding.btnPhoto.setOnClickListener { viewModel.takePhoto() }
         binding.btnRecordStart.setOnClickListener { viewModel.startRecording() }
         binding.btnRecordStop.setOnClickListener { viewModel.stopRecording() }
@@ -96,12 +98,15 @@ class MainActivity : AppCompatActivity() {
             setOnCheckedChangeListener { _, isChecked ->
                 text = getString(if (isChecked) R.string.camera_mode_record else R.string.camera_mode_photo)
                 if (isPressed) {
+
                     pendingRecordMode = isChecked
+
                     viewModel.setRecordMode(isChecked)
                 }
             }
         }
     }
+
 
     private fun observeViewModel() {
         lifecycleScope.launch {
@@ -145,7 +150,9 @@ class MainActivity : AppCompatActivity() {
             binding.textCommandEndpoint.isVisible = false
             binding.textCommandEndpoint.text = ""
             lastLoadedStreamUrl = null
+
         }
+    }
 
         val hasSettings = settings != null
         binding.btnReload.isEnabled = hasSettings
@@ -171,6 +178,7 @@ class MainActivity : AppCompatActivity() {
         if (pendingRecordMode == null) {
             lastKnownRecordMode = binding.camSwitch.isChecked
         }
+
         binding.camSwitch.text = getString(
             if (binding.camSwitch.isChecked) R.string.camera_mode_record else R.string.camera_mode_photo
         )
@@ -200,6 +208,7 @@ class MainActivity : AppCompatActivity() {
                 showCameraSettingsDialog()
             }
 
+
             is CameraUiEvent.CommandCompleted -> {
                 val message = event.result.message
                 if (!message.isNullOrBlank()) {
@@ -228,6 +237,7 @@ class MainActivity : AppCompatActivity() {
                     pendingRecordMode = null
                 }
             }
+
         }
     }
 
