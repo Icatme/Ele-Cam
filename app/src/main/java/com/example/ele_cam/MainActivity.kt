@@ -11,6 +11,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.ele_cam.camera.CameraCommandAction
 import com.example.ele_cam.camera.CameraSettingsDialogFragment
 import com.example.ele_cam.camera.CameraUiEvent
 import com.example.ele_cam.camera.CameraUiState
@@ -28,6 +29,8 @@ class MainActivity : AppCompatActivity() {
     private var currentState: CameraUiState = CameraUiState()
     private var lastLoadedStreamUrl: String? = null
     private var isTestingConnection: Boolean = false
+    private var pendingRecordMode: Boolean? = null
+    private var lastKnownRecordMode: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,6 +73,7 @@ class MainActivity : AppCompatActivity() {
             }
             setOnClickListener { reload() }
         }
+
     }
 
     private fun setupControls() {
@@ -84,6 +88,7 @@ class MainActivity : AppCompatActivity() {
                 viewModel.requestSettingsDialog()
             }
         }
+
         binding.btnPhoto.setOnClickListener { viewModel.takePhoto() }
         binding.btnRecordStart.setOnClickListener { viewModel.startRecording() }
         binding.btnRecordStop.setOnClickListener { viewModel.stopRecording() }
@@ -93,11 +98,15 @@ class MainActivity : AppCompatActivity() {
             setOnCheckedChangeListener { _, isChecked ->
                 text = getString(if (isChecked) R.string.camera_mode_record else R.string.camera_mode_photo)
                 if (isPressed) {
+
+                    pendingRecordMode = isChecked
+
                     viewModel.setRecordMode(isChecked)
                 }
             }
         }
     }
+
 
     private fun observeViewModel() {
         lifecycleScope.launch {
@@ -141,16 +150,35 @@ class MainActivity : AppCompatActivity() {
             binding.textCommandEndpoint.isVisible = false
             binding.textCommandEndpoint.text = ""
             lastLoadedStreamUrl = null
+
         }
+    }
 
         val hasSettings = settings != null
         binding.btnReload.isEnabled = hasSettings
+
+        if (!hasSettings) {
+            pendingRecordMode = null
+        }
 
         val controlsEnabled = hasSettings && !state.isExecutingCommand
         binding.btnPhoto.isEnabled = controlsEnabled
         binding.btnRecordStart.isEnabled = controlsEnabled
         binding.btnRecordStop.isEnabled = controlsEnabled
         binding.camSwitch.isEnabled = controlsEnabled
+
+        val targetRecordMode = when {
+            pendingRecordMode != null -> pendingRecordMode
+            state.isRecordMode != null -> state.isRecordMode
+            else -> null
+        }
+        if (targetRecordMode != null && binding.camSwitch.isChecked != targetRecordMode) {
+            binding.camSwitch.isChecked = targetRecordMode
+        }
+        if (pendingRecordMode == null) {
+            lastKnownRecordMode = binding.camSwitch.isChecked
+        }
+
         binding.camSwitch.text = getString(
             if (binding.camSwitch.isChecked) R.string.camera_mode_record else R.string.camera_mode_photo
         )
@@ -179,6 +207,37 @@ class MainActivity : AppCompatActivity() {
                 }
                 showCameraSettingsDialog()
             }
+
+
+            is CameraUiEvent.CommandCompleted -> {
+                val message = event.result.message
+                if (!message.isNullOrBlank()) {
+                    Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+                }
+                if (event.action is CameraCommandAction.SetRecordMode) {
+                    if (event.result.success) {
+                        pendingRecordMode = null
+                        lastKnownRecordMode = event.action.isRecordMode
+                        if (binding.camSwitch.isChecked != event.action.isRecordMode) {
+                            binding.camSwitch.isChecked = event.action.isRecordMode
+                        }
+                        binding.camSwitch.text = getString(
+                            if (binding.camSwitch.isChecked) R.string.camera_mode_record else R.string.camera_mode_photo
+                        )
+                    } else {
+                        pendingRecordMode = null
+                        if (binding.camSwitch.isChecked != lastKnownRecordMode) {
+                            binding.camSwitch.isChecked = lastKnownRecordMode
+                        }
+                        binding.camSwitch.text = getString(
+                            if (binding.camSwitch.isChecked) R.string.camera_mode_record else R.string.camera_mode_photo
+                        )
+                    }
+                } else {
+                    pendingRecordMode = null
+                }
+            }
+
         }
     }
 

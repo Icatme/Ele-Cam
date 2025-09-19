@@ -36,7 +36,13 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
     init {
         viewModelScope.launch {
             repository.cameraSettingsFlow.collect { settings ->
-                _state.update { it.copy(settings = settings) }
+
+                _state.update { current ->
+                    current.copy(
+                        settings = settings,
+                        isRecordMode = if (settings == null) null else current.isRecordMode
+                    )
+                }
 
                 if (settings == null) {
                     if (!hasPromptedForSettings) {
@@ -62,21 +68,43 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun takePhoto() = sendCommand("1001", "0", app.getString(R.string.message_photo_success))
 
-    fun startRecording() =
-        sendCommand("2001", "1", app.getString(R.string.message_start_recording_success))
-
-    fun stopRecording() =
-        sendCommand("2001", "0", app.getString(R.string.message_stop_recording_success))
-
-    fun setRecordMode(isRecordMode: Boolean) = sendCommand(
-        "3001",
-        if (isRecordMode) "1" else "0",
-        app.getString(if (isRecordMode) R.string.message_record_mode else R.string.message_photo_mode)
+    fun takePhoto() = sendCommand(
+        command = "1001",
+        parameter = "0",
+        action = CameraCommandAction.TakePhoto,
+        successMessage = app.getString(R.string.message_photo_success)
     )
 
-    private fun sendCommand(command: String, parameter: String, successMessage: String) {
+    fun startRecording() = sendCommand(
+        command = "2001",
+        parameter = "1",
+        action = CameraCommandAction.StartRecording,
+        successMessage = app.getString(R.string.message_start_recording_success)
+    )
+
+    fun stopRecording() = sendCommand(
+        command = "2001",
+        parameter = "0",
+        action = CameraCommandAction.StopRecording,
+        successMessage = app.getString(R.string.message_stop_recording_success)
+    )
+
+    fun setRecordMode(isRecordMode: Boolean) = sendCommand(
+        command = "3001",
+        parameter = if (isRecordMode) "1" else "0",
+        action = CameraCommandAction.SetRecordMode(isRecordMode),
+        successMessage = app.getString(
+            if (isRecordMode) R.string.message_record_mode else R.string.message_photo_mode
+        )
+    )
+
+    private fun sendCommand(
+        command: String,
+        parameter: String,
+        action: CameraCommandAction,
+        successMessage: String
+    ) {
         val settings = _state.value.settings
         if (settings == null) {
             notifyMissingSettings()
@@ -92,19 +120,32 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
             val result = commandService.executeCommand(settings, command, parameter)
             _state.update { it.copy(isExecutingCommand = false) }
 
-            if (result.success) {
-                _events.emit(CameraUiEvent.ShowMessage(successMessage))
-            } else {
-                val errorMessage = result.message ?: app.getString(R.string.message_command_failed)
-                _events.emit(CameraUiEvent.ShowMessage(errorMessage))
+
+            if (result.success && action is CameraCommandAction.SetRecordMode) {
+                _state.update { it.copy(isRecordMode = action.isRecordMode) }
             }
+
+            val message = if (result.success) {
+                successMessage
+            } else {
+                result.message ?: app.getString(R.string.message_command_failed)
+            }
+
+            _events.emit(
+                CameraUiEvent.CommandCompleted(
+                    action = action,
+                    result = result.copy(message = message)
+                )
+            )
         }
     }
 
     private fun notifyMissingSettings() {
         viewModelScope.launch {
-            _events.emit(CameraUiEvent.ShowMessage(app.getString(R.string.error_settings_missing)))
-            _events.emit(CameraUiEvent.RequestSettings())
+
+            _events.emit(
+                CameraUiEvent.RequestSettings(app.getString(R.string.error_settings_missing))
+            )
         }
     }
 
@@ -125,10 +166,24 @@ class CameraViewModel(application: Application) : AndroidViewModel(application) 
 
 data class CameraUiState(
     val settings: CameraSettings? = null,
-    val isExecutingCommand: Boolean = false
+
+    val isExecutingCommand: Boolean = false,
+    val isRecordMode: Boolean? = null
 )
 
 sealed class CameraUiEvent {
     data class ShowMessage(val message: String) : CameraUiEvent()
     data class RequestSettings(val reasonMessage: String? = null) : CameraUiEvent()
+
+    data class CommandCompleted(
+        val action: CameraCommandAction,
+        val result: CameraCommandResult
+    ) : CameraUiEvent()
+}
+
+sealed class CameraCommandAction {
+    object TakePhoto : CameraCommandAction()
+    object StartRecording : CameraCommandAction()
+    object StopRecording : CameraCommandAction()
+    data class SetRecordMode(val isRecordMode: Boolean) : CameraCommandAction()
 }
