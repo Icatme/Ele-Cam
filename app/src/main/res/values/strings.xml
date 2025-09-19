@@ -1,6 +1,34 @@
 <resources>
     <string name="app_name">Ele-Cam</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="label_stream_url">实时预览地址</string>
+    <string name="label_command_endpoint">控制接口：%1$s:%2$d</string>
+    <string name="camera_settings_not_configured">尚未配置相机地址</string>
+    <string name="action_edit_address">设置地址</string>
+    <string name="action_reload">刷新</string>
+    <string name="action_take_photo">拍照</string>
+    <string name="action_record_start">开始录像</string>
+    <string name="action_record_stop">停止录像</string>
+    <string name="camera_mode_photo">拍照模式</string>
+    <string name="camera_mode_record">录像模式</string>
+    <string name="camera_status_command_running">正在发送命令...</string>
+    <string name="camera_status_testing_connection">正在测试连接...</string>
+    <string name="camera_settings_title">相机连接设置</string>
+    <string name="action_save">保存</string>
+    <string name="action_test_connection">测试连接</string>
+    <string name="hint_stream_url">预览流地址，例如 http://192.168.1.254:8192</string>
+    <string name="hint_command_host">控制接口主机，例如 192.168.1.254</string>
+    <string name="hint_command_port">控制接口端口，默认 80</string>
+    <string name="message_photo_success">已发送拍照命令</string>
+    <string name="message_start_recording_success">已开始录像</string>
+    <string name="message_stop_recording_success">已停止录像</string>
+    <string name="message_record_mode">已切换至录像模式</string>
+    <string name="message_photo_mode">已切换至拍照模式</string>
+    <string name="message_command_failed">命令发送失败</string>
+    <string name="message_test_connection_success">相机连接正常</string>
+    <string name="message_test_connection_failed">无法连接到相机</string>
+    <string name="message_stream_error">预览加载失败：%1$s</string>
+    <string name="error_settings_missing">请先配置相机地址</string>
+    <string name="error_stream_url_required">请输入流地址</string>
+    <string name="error_command_host_required">请输入控制主机地址</string>
+    <string name="error_command_port_invalid">请输入 1-65535 之间的端口号</string>
 </resources>
